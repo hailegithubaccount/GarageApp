@@ -2,6 +2,7 @@ const Garage = require('../models/Garage');
 const GarageService = require('../models/GarageService');
 const User = require('../models/User');
 const { haversineDistance } = require('../utils/haversine');
+const { getDistancesAndDurations } = require('../services/googleMapsService');
 const { createAuditLog } = require('../utils/auditLogger');
 const { GARAGE_STATUS, ROLES } = require('../config/constants');
 
@@ -138,8 +139,8 @@ exports.getNearbyGarages = async (req, res, next) => {
             longitude: { $ne: null },
         }).populate('admin', 'fullName phoneNumber');
 
-        // Calculate distance and filter
-        const nearbyGarages = garages
+        // Calculate distance and filter (Initial Haversine Filter for performance)
+        const filteredGarages = garages
             .map((garage) => {
                 const distance = haversineDistance(
                     userLat,
@@ -154,6 +155,19 @@ exports.getNearbyGarages = async (req, res, next) => {
             })
             .filter((g) => g.distance <= maxRadius)
             .sort((a, b) => a.distance - b.distance);
+
+        // Step 2: Get high-precision road distance from Google Maps for the nearby results
+        let nearbyGarages = filteredGarages;
+        if (filteredGarages.length > 0) {
+            const googleResults = await getDistancesAndDurations(
+                { lat: userLat, lng: userLng },
+                filteredGarages
+            );
+
+            if (googleResults) {
+                nearbyGarages = googleResults;
+            }
+        }
 
         res.status(200).json({
             success: true,

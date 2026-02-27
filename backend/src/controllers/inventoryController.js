@@ -36,22 +36,35 @@ exports.addItem = async (req, res, next) => {
 };
 
 /**
- * @desc    Get all inventory for admin's garage
+ * @desc    Get all inventory for a garage
  * @route   GET /api/inventory
- * @access  Admin
+ * @access  Admin, Mechanic
  */
 exports.getInventory = async (req, res, next) => {
     try {
-        const garage = await Garage.findOne({ admin: req.user._id });
-        if (!garage) {
-            return res.status(404).json({
-                success: false,
-                message: 'No garage found for this admin',
-            });
+        let garageId;
+        if (req.user.role === ROLES.ADMIN) {
+            const garage = await Garage.findOne({ admin: req.user._id });
+            if (!garage) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No garage found for this admin',
+                });
+            }
+            garageId = garage._id;
+        } else {
+            // For mechanics
+            if (!req.user.garage) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Mechanic is not assigned to a garage',
+                });
+            }
+            garageId = req.user.garage;
         }
 
         const { search } = req.query;
-        const query = { garage: garage._id };
+        const query = { garage: garageId };
         if (search) {
             query.itemName = { $regex: search, $options: 'i' };
         }
