@@ -2,6 +2,7 @@ const ServiceRequest = require('../models/ServiceRequest');
 const MechanicAssignment = require('../models/MechanicAssignment');
 const Vehicle = require('../models/Vehicle');
 const Garage = require('../models/Garage');
+const GarageService = require('../models/GarageService');
 const User = require('../models/User');
 const { createNotification } = require('../services/notificationService');
 const { createAuditLog } = require('../utils/auditLogger');
@@ -53,19 +54,51 @@ exports.createServiceRequest = async (req, res, next) => {
             });
         }
 
+        // If a service is selected, validate it belongs to this garage and get its price
+        let selectedService = null;
+        let resolvedServiceType = serviceType;
+        let resolvedTotalCost = 0;
+
+        if (serviceId) {
+            selectedService = await GarageService.findOne({
+                _id: serviceId,
+                garage: garageId,
+                isActive: true,
+            });
+            if (!selectedService) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Selected service not found or does not belong to this garage',
+                });
+            }
+            // Auto-populate totalCost from the service price
+            resolvedTotalCost = selectedService.price;
+            // Auto-populate serviceType from service name if not provided
+            if (!resolvedServiceType) {
+                resolvedServiceType = selectedService.serviceName;
+            }
+        }
+
         const serviceRequest = await ServiceRequest.create({
             customer: req.user._id,
             vehicle: vehicleId,
             garage: garageId,
             service: serviceId || null,
-            serviceType,
+            serviceType: resolvedServiceType,
             description,
             preferredDate,
             preferredTime,
             isEmergency: isEmergency || false,
             emergencyLatitude,
             emergencyLongitude,
+            totalCost: resolvedTotalCost,
         });
+
+        // Populate the response with full details
+        const populatedRequest = await ServiceRequest.findById(serviceRequest._id)
+            .populate('vehicle', 'plateNumber brand model year color')
+            .populate('garage', 'garageName location contactNumber')
+            .populate('service', 'serviceName price category estimatedDuration');
 
         // Notify the garage admin
         await createNotification({
@@ -89,7 +122,7 @@ exports.createServiceRequest = async (req, res, next) => {
         res.status(201).json({
             success: true,
             message: 'Service request submitted successfully',
-            data: serviceRequest,
+            data: populatedRequest,
         });
     } catch (error) {
         next(error);

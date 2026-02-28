@@ -99,13 +99,46 @@ exports.getGarages = async (req, res, next) => {
 
         const total = await Garage.countDocuments(query);
 
+        // Enrich each garage with its active service count and price range
+        const garageIds = garages.map((g) => g._id);
+        const serviceSummaries = await GarageService.aggregate([
+            { $match: { garage: { $in: garageIds }, isActive: true } },
+            {
+                $group: {
+                    _id: '$garage',
+                    serviceCount: { $sum: 1 },
+                    minPrice: { $min: '$price' },
+                    maxPrice: { $max: '$price' },
+                },
+            },
+        ]);
+
+        const summaryMap = {};
+        serviceSummaries.forEach((s) => {
+            summaryMap[s._id.toString()] = {
+                serviceCount: s.serviceCount,
+                minPrice: s.minPrice,
+                maxPrice: s.maxPrice,
+            };
+        });
+
+        const enrichedGarages = garages.map((g) => {
+            const obj = g.toObject();
+            const summary = summaryMap[g._id.toString()] || {
+                serviceCount: 0,
+                minPrice: 0,
+                maxPrice: 0,
+            };
+            return { ...obj, ...summary };
+        });
+
         res.status(200).json({
             success: true,
             count: garages.length,
             total,
             totalPages: Math.ceil(total / parseInt(limit)),
             currentPage: parseInt(page),
-            data: garages,
+            data: enrichedGarages,
         });
     } catch (error) {
         next(error);
@@ -198,11 +231,11 @@ exports.getGarage = async (req, res, next) => {
             });
         }
 
-        // Get services for this garage
+        // Get services for this garage (sorted by category)
         const services = await GarageService.find({
             garage: garage._id,
             isActive: true,
-        });
+        }).sort({ category: 1, price: 1 });
 
         res.status(200).json({
             success: true,

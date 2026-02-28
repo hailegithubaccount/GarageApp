@@ -63,6 +63,22 @@ const userSchema = new mongoose.Schema(
         // Password reset
         resetPasswordToken: String,
         resetPasswordExpires: Date,
+
+        // Location data
+        location: {
+            address: {
+                type: String,
+                default: null,
+            },
+            latitude: {
+                type: Number,
+                default: null,
+            },
+            longitude: {
+                type: Number,
+                default: null,
+            },
+        },
     },
     {
         timestamps: true,

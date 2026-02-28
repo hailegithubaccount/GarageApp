@@ -62,10 +62,8 @@ exports.register = async (req, res, next) => {
         res.status(201).json({
             success: true,
             message: 'Registration successful',
-            data: {
-                user,
-                token,
-            },
+            accesstoken: token,
+            user,
         });
     } catch (error) {
         next(error);
@@ -129,10 +127,8 @@ exports.login = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Login successful',
-            data: {
-                user,
-                token,
-            },
+            accesstoken: token,
+            user,
         });
     } catch (error) {
         next(error);
@@ -300,5 +296,39 @@ exports.resetPassword = async (req, res, next) => {
         });
     } catch (error) {
         next(error);
+    }
+};
+/**
+ * @desc    Update user location
+ * @route   PUT /api/auth/profile/location
+ * @access  Private
+ */
+exports.updateLocation = async (req, res, next) => {
+    try {
+        const { address, latitude, longitude } = req.body;
+
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+        }
+
+        user.location = {
+            address: address || user.location.address,
+            latitude: latitude || user.location.latitude,
+            longitude: longitude || user.location.longitude,
+        };
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (err) {
+        next(err);
     }
 };
