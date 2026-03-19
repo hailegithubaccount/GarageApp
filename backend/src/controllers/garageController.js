@@ -23,23 +23,23 @@ exports.createGarage = async (req, res, next) => {
             operatingHours,
         } = req.body;
 
-        // Check if admin already has a garage
-        const existingGarage = await Garage.findOne({ admin: req.user._id });
-        if (existingGarage) {
-            return res.status(400).json({
-                success: false,
-                message: 'You already have a registered garage',
-            });
+        /* Removed: Check if admin already has a garage to allow multiple garages */
+
+        // Process images if any
+        let images = [];
+        if (req.files && req.files.length > 0) {
+            images = req.files.map(file => file.filename);
         }
 
         const garage = await Garage.create({
             garageName,
             location,
-            latitude,
-            longitude,
+            latitude: latitude ? parseFloat(latitude) : undefined,
+            longitude: longitude ? parseFloat(longitude) : undefined,
             contactNumber,
             description,
             operatingHours,
+            images, // Add the images here
             admin: req.user._id,
             status: GARAGE_STATUS.PENDING, // Requires super admin approval
         });
@@ -219,10 +219,13 @@ exports.getNearbyGarages = async (req, res, next) => {
  */
 exports.getGarage = async (req, res, next) => {
     try {
-        const garage = await Garage.findById(req.params.id).populate(
-            'admin',
-            'fullName email phoneNumber'
-        );
+        const garage = await Garage.findById(req.params.id)
+            .populate('admin', 'fullName email phoneNumber')
+            .populate({
+                path: 'services',
+                match: { isActive: true },
+                options: { sort: { category: 1, price: 1 } }
+            });
 
         if (!garage) {
             return res.status(404).json({
@@ -231,15 +234,9 @@ exports.getGarage = async (req, res, next) => {
             });
         }
 
-        // Get services for this garage (sorted by category)
-        const services = await GarageService.find({
-            garage: garage._id,
-            isActive: true,
-        }).sort({ category: 1, price: 1 });
-
         res.status(200).json({
             success: true,
-            data: { ...garage.toObject(), services },
+            data: garage,
         });
     } catch (error) {
         next(error);
@@ -262,8 +259,8 @@ exports.updateGarage = async (req, res, next) => {
             });
         }
 
-        // Check ownership
-        if (garage.admin.toString() !== req.user._id.toString()) {
+        // Check ownership or super admin
+        if (garage.admin.toString() !== req.user._id.toString() && req.user.role !== ROLES.SUPER_ADMIN) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized to update this garage',
@@ -398,6 +395,177 @@ exports.deleteGarageService = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Service deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Get mechanics for a garage
+ * @route   GET /api/garages/:id/mechanics
+ * @access  Admin (owner)
+ */
+exports.getGarageMechanics = async (req, res, next) => {
+    try {
+        const garage = await Garage.findOne({ _id: req.params.id, admin: req.user._id });
+        if (!garage) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const mechanics = await User.find({
+            garage: req.params.id,
+            role: ROLES.MECHANIC,
+            status: 'active',
+        }).select('fullName email phoneNumber profileImage status');
+
+        res.status(200).json({
+            success: true,
+            count: mechanics.length,
+            data: mechanics,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Get garages owned by the logged-in admin
+ * @route   GET /api/garages/my-garages
+ * @access  Admin
+ */
+exports.getMyGarages = async (req, res, next) => {
+    try {
+        const garages = await Garage.find({ admin: req.user._id })
+            .populate('admin', 'fullName email phoneNumber')
+            .populate('services')
+            .sort({ createdAt: -1 });
+            
+        res.status(200).json({
+            success: true,
+            count: garages.length,
+            data: garages,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Upload images for an existing garage
+ * @route   POST /api/garages/:id/upload-images
+ * @access  Admin (owner)
+ */
+exports.uploadGarageImages = async (req, res, next) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please upload files' });
+        }
+
+        const garage = await Garage.findById(req.params.id);
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        if (garage.admin.toString() !== req.user._id.toString() && req.user.role !== ROLES.SUPER_ADMIN) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const filenames = req.files.map(file => file.filename);
+        
+        // Append new images to existing ones
+        garage.images = [...garage.images, ...filenames];
+        await garage.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Images uploaded successfully',
+            data: garage.images,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Toggle garage status (Active/Suspended)
+ * @route   PUT /api/garages/:id/status
+ * @access  Admin (owner) or Super Admin
+ */
+exports.updateGarageStatus = async (req, res, next) => {
+    try {
+        const { status } = req.body;
+        const garage = await Garage.findById(req.params.id);
+
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        // Check authorization: Super Admin OR the Admin who owns the garage
+        const isOwner = garage.admin.toString() === req.user._id.toString();
+        const isSuperAdmin = req.user.role === ROLES.SUPER_ADMIN;
+
+        if (!isSuperAdmin && !isOwner) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        // Admins cannot "approve" their own pending garages
+        if (isOwner && !isSuperAdmin && garage.status === GARAGE_STATUS.PENDING) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You cannot approve your own garage. Please wait for super admin approval.' 
+            });
+        }
+
+        garage.status = status;
+        await garage.save();
+
+        await createAuditLog({
+            userId: req.user._id,
+            action: 'GARAGE_STATUS_UPDATED',
+            entityType: 'Garage',
+            entityId: garage._id,
+            details: `Status changed to ${status}`,
+            ipAddress: req.ip,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Garage ${status} successfully`,
+            data: garage,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Delete a garage image
+ * @route   DELETE /api/garages/:id/images
+ * @access  Admin (owner)
+ */
+exports.deleteGarageImage = async (req, res, next) => {
+    try {
+        const { imageUrl } = req.body;
+        const garage = await Garage.findById(req.params.id);
+
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        // Check ownership
+        if (garage.admin.toString() !== req.user._id.toString() && req.user.role !== ROLES.SUPER_ADMIN) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        // Remove image from array
+        garage.images = garage.images.filter(img => img !== imageUrl);
+        await garage.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Image removed successfully',
+            data: garage.images,
         });
     } catch (error) {
         next(error);

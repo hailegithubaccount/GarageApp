@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Garage = require('../models/Garage');
+const GarageService = require('../models/GarageService');
 const ServiceRequest = require('../models/ServiceRequest');
 const Payment = require('../models/Payment');
 const AuditLog = require('../models/AuditLog');
@@ -15,7 +16,12 @@ exports.getAllGarages = async (req, res, next) => {
         const query = {};
         if (status) query.status = status;
         const skip = (parseInt(page) - 1) * parseInt(limit);
-        const garages = await Garage.find(query).populate('admin', 'fullName email phoneNumber').sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
+        const garages = await Garage.find(query)
+            .populate('admin', 'fullName email phoneNumber')
+            .populate('services')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
         const total = await Garage.countDocuments(query);
         res.status(200).json({ success: true, count: garages.length, total, data: garages });
     } catch (error) { next(error); }

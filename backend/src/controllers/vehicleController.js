@@ -7,7 +7,17 @@ const Vehicle = require('../models/Vehicle');
  */
 exports.addVehicle = async (req, res, next) => {
     try {
-        const { plateNumber, vehicleType, brand, model, year, color } = req.body;
+        console.log('--- Add Vehicle Debug ---');
+        console.log('Headers:', req.headers['content-type']);
+        console.log('Body:', req.body);
+        console.log('File:', req.file);
+
+        const { plateNumber, vehicleType, brand, model, year, color, fuelType } = req.body;
+        let image = '';
+
+        if (req.file) {
+            image = `uploads/vehicles/${req.file.filename}`;
+        }
 
         const vehicle = await Vehicle.create({
             customer: req.user._id,
@@ -17,6 +27,8 @@ exports.addVehicle = async (req, res, next) => {
             model,
             year,
             color,
+            fuelType,
+            image,
         });
 
         res.status(201).json({

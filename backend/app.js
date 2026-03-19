@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 const connectDB = require('./src/config/db');
 const errorHandler = require('./src/middleware/errorHandler');
 
@@ -20,12 +21,17 @@ const superAdminRoutes = require('./src/routes/superAdminRoutes');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+}));
 app.use(cors());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (workshop images)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Logging (dev only)
 if (process.env.NODE_ENV === 'development') {
@@ -68,7 +74,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     await connectDB();
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`\n🚗 Garage Management System API`);
         console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
         console.log(`   Port        : ${PORT}`);

@@ -33,6 +33,14 @@ const vehicleSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        image: {
+            type: String,
+        },
+        fuelType: {
+            type: String,
+            enum: ['Petrol', 'Diesel', 'Electric'],
+            default: 'Petrol',
+        },
     },
     {
         timestamps: true,

@@ -62,8 +62,18 @@ const garageSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
     }
 );
+
+// Virtual for services
+garageSchema.virtual('services', {
+    ref: 'GarageService',
+    localField: '_id',
+    foreignField: 'garage',
+    justOne: false,
+});
 
 // Index for geolocation queries
 garageSchema.index({ latitude: 1, longitude: 1 });
