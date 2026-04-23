@@ -34,9 +34,9 @@ export async function login(email: string, password: string) {
         body: JSON.stringify({ email, password }),
     });
 
-    if (data.success && data.accesstoken) {
-        localStorage.setItem('token', data.accesstoken);
-        localStorage.setItem('user', JSON.stringify(data.user));
+    if (data.success && data.data) {
+        localStorage.setItem('token', data.data.token);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
     }
 
     return data;

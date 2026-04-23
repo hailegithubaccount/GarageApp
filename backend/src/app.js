@@ -20,8 +20,11 @@ const superAdminRoutes = require('./routes/superAdminRoutes');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // Allow cross-origin images
 app.use(cors());
+
+// Static folder for uploads
+app.use('/uploads', express.static('uploads'));
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

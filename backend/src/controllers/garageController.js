@@ -229,8 +229,8 @@ exports.updateGarage = async (req, res, next) => {
             });
         }
 
-        // Check ownership
-        if (garage.admin.toString() !== req.user._id.toString()) {
+        // Check ownership (admins only allowed their own garage, super_admins allowed all)
+        if (req.user.role !== 'super_admin' && garage.admin.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized to update this garage',
@@ -365,6 +365,47 @@ exports.deleteGarageService = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Service deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Upload images for a garage
+ * @route   POST /api/garages/:id/upload-images
+ * @access  Admin (owner) / Super Admin
+ */
+exports.uploadGarageImages = async (req, res, next) => {
+    try {
+        const garage = await Garage.findById(req.params.id);
+
+        if (!garage) {
+            return res.status(404).json({ success: false, message: 'Garage not found' });
+        }
+
+        // Check ownership
+        if (req.user.role !== 'super_admin' && garage.admin.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to upload images for this garage',
+            });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please upload images' });
+        }
+
+        const imageUrls = req.files.map(file => `/uploads/garages/${file.filename}`);
+        
+        // Add new images to existing one instead of overwriting
+        garage.images = [...(garage.images || []), ...imageUrls];
+        await garage.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Images uploaded successfully',
+            data: garage.images,
         });
     } catch (error) {
         next(error);

@@ -33,6 +33,11 @@ export default function DashboardPage() {
   const role = user?.role;
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     fetchAnalytics();
   }, []);
 

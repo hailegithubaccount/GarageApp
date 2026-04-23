@@ -19,7 +19,7 @@ export default function LoginPage() {
         try {
             const data = await login(email, password);
             if (data.success) {
-                const userRole = data.user?.role;
+                const userRole = data.data?.user?.role;
                 if (userRole === 'super_admin' || userRole === 'admin') {
                     router.push('/');
                 } else {

@@ -9,14 +9,13 @@ import Header from '@/components/Header';
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const [ready, setReady] = useState(false);
-
     const isLoginPage = pathname === '/login';
+    const [ready, setReady] = useState(isLoginPage);
 
     useEffect(() => {
         const token = getToken();
         if (!token && !isLoginPage) {
-            router.push('/login');
+            router.replace('/login');
         } else {
             setReady(true);
         }
