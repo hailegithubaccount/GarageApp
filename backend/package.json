@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "seed": "node src/seeders/seed.js"
+    "seed": "node src/seeders/seed.js",
+    "createSuperAdmin": "node src/seeders/createSuperAdmin.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

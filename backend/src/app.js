@@ -3,19 +3,19 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const connectDB = require('./src/config/db');
-const errorHandler = require('./src/middleware/errorHandler');
+const connectDB = require('./config/db');
+const errorHandler = require('./middleware/errorHandler');
 
 // Route imports
-const authRoutes = require('./src/routes/authRoutes');
-const garageRoutes = require('./src/routes/garageRoutes');
-const vehicleRoutes = require('./src/routes/vehicleRoutes');
-const serviceRequestRoutes = require('./src/routes/serviceRequestRoutes');
-const inventoryRoutes = require('./src/routes/inventoryRoutes');
-const paymentRoutes = require('./src/routes/paymentRoutes');
-const reviewRoutes = require('./src/routes/reviewRoutes');
-const notificationRoutes = require('./src/routes/notificationRoutes');
-const superAdminRoutes = require('./src/routes/superAdminRoutes');
+const authRoutes = require('./routes/authRoutes');
+const garageRoutes = require('./routes/garageRoutes');
+const vehicleRoutes = require('./routes/vehicleRoutes');
+const serviceRequestRoutes = require('./routes/serviceRequestRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const superAdminRoutes = require('./routes/superAdminRoutes');
 
 const app = express();
 
