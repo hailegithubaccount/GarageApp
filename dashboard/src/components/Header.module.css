@@ -1,0 +1,96 @@
+.header {
+    height: var(--header-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+}
+
+.greeting {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.iconBtn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.iconBtn:hover {
+    border-color: var(--accent);
+}
+
+.notifDot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.profileInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.profileName {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.profileRole {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
