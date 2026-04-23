@@ -11,7 +11,7 @@ export const loginLogin$ = async (
 
 
     return AUTH_URI.post(
-        'login',
+        '/login',
         {
             email,
             password,
